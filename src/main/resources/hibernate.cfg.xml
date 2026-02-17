@@ -23,8 +23,8 @@
 
 
         <!-- Регистрации сущностей -->
-        <mapping class="org.example.model.Player"/>
-        <mapping class="org.example.model.Tournament"/>
-        <mapping class="org.example.model.Game"/>
+        <mapping class="org.pingpong.model.Player"/>
+        <mapping class="org.pingpong.model.Tournament"/>
+        <mapping class="org.pingpong.model.Game"/>
     </session-factory>
 </hibernate-configuration>

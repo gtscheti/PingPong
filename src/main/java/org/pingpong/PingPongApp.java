@@ -44,7 +44,7 @@ public class PingPongApp extends Application {
     private static final String GOLD_MEDAL_PATH = "/images/gold.png";
     private static final String SILVER_MEDAL_PATH = "/images/silver.png";
     private static final String BRONZE_MEDAL_PATH = "/images/bronze.png";
-    private static final String GRAPH_PATH = "/images/graph.png";
+    private static final String GRAPH_ICON_PATH = "/images/graph.png";
 
     private final PlayerService playerService = new PlayerServiceImpl();
     private final TableView<Player> tableView = new TableView<>();
@@ -104,7 +104,7 @@ public class PingPongApp extends Application {
     private HBox createToolbar() {
         Button addBtn = createIconButton(ADD_ICON_PATH, "Добавить игрока", e -> openPlayerSearchWindow());
         Button delBtn = createIconButton(DELETE_ICON_PATH, "Удалить игрока", e -> showDeleteConfirmationDialog());
-        Button graphBtn = createIconButton(GRAPH_PATH, "График рейтингов", e -> showRatingChart());
+        Button graphBtn = createIconButton(GRAPH_ICON_PATH, "График рейтингов", e -> showRatingChart());
         Button refreshBtn = createIconButton(REFRESH_ICON_PATH, "Обновить данные выбранного игрока", e -> openUpdateDateDialog((Stage) tableView.getScene().getWindow()));
         Button refreshAllBtn = createIconButton(REFRESH_ALL_ICON_PATH, "Обновить данные всех игроков", e -> refreshAllPlayers());
 

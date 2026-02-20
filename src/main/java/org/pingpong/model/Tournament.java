@@ -47,7 +47,7 @@ public class Tournament {
     }
 
     public boolean hasMedals() {
-        return getPlace() != null && (getPlace() <= 3);
+        return getPlace() != null && (getPlace() <= 3) && (getPlace() > 0);
     }
 
     @Override

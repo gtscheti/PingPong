@@ -19,6 +19,7 @@ import javafx.stage.Stage;
 import org.pingpong.model.Player;
 import org.pingpong.service.MainAppRefresher;
 import org.pingpong.service.graph.RatingChartApp;
+import org.pingpong.service.player.PlayerSearchService;
 import org.pingpong.service.player.PlayerService;
 import org.pingpong.service.player.PlayerServiceImpl;
 import org.pingpong.service.player.search.RttfPlayerSearch;
@@ -259,11 +260,12 @@ public class PingPongApp extends Application {
      * Открывает окно поиска нового игрока.
      */
     private void openPlayerSearchWindow() {
-        PlayerSearchWindow searchWin = new PlayerSearchWindow(
+        var searchService = new PlayerSearchService(
                 new RttfPlayerSearch(),
                 new TtwPlayerSearch(),
-                this::refreshPlayers
+                playerService
         );
+        var searchWin = new PlayerSearchWindow(searchService, this::refreshPlayers);
         searchWin.showAndWait();
     }
 
@@ -438,7 +440,8 @@ public class PingPongApp extends Application {
             }
         };
 
-        task.messageProperty().addListener((obs, old, current) -> {}); // можно использовать для прогресс-бара
+        task.messageProperty().addListener((obs, old, current) -> {
+        }); // можно использовать для прогресс-бара
         new Thread(task).start();
     }
 

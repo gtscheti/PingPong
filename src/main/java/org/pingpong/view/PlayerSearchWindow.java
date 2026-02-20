@@ -4,7 +4,6 @@ import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.concurrent.Task;
 import javafx.geometry.Insets;
-import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
@@ -17,43 +16,30 @@ import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import org.pingpong.model.Player;
 import org.pingpong.model.PlayerMatch;
-import org.pingpong.service.player.PlayerService;
-import org.pingpong.service.player.PlayerServiceImpl;
-import org.pingpong.service.player.search.RttfPlayerSearch;
-import org.pingpong.service.player.search.TtwPlayerSearch;
+import org.pingpong.service.player.PlayerSearchService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.LocalDate;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class PlayerSearchWindow extends Stage {
 
-    private final RttfPlayerSearch rttfSearch;
-    private final TtwPlayerSearch ttwSearch;
-    private final PlayerService playerService = new PlayerServiceImpl();
-
-    private final TextField searchField = createSearchField();
+    private final PlayerSearchService searchService;
     private TableView<PlayerMatch> rttfTable;
     private TableView<PlayerMatch> ttwTable;
     private final Map<String, ToggleGroup> toggleGroups = new HashMap<>();
     private Label statusLabel;
     private Button saveButton;
 
-    private final ExecutorService executor = Executors.newFixedThreadPool(2);
     private final AtomicInteger completedTasks = new AtomicInteger(0);
     private static final Logger log = LoggerFactory.getLogger(PlayerSearchWindow.class);
 
     private final Runnable onPlayerSaved;
 
-    public PlayerSearchWindow(RttfPlayerSearch rttf, TtwPlayerSearch ttw, Runnable onPlayerSaved) {
-        this.rttfSearch = rttf;
-        this.ttwSearch = ttw;
+    public PlayerSearchWindow(PlayerSearchService searchService, Runnable onPlayerSaved) {
+        this.searchService = searchService;
         this.onPlayerSaved = onPlayerSaved;
 
         initializeWindow();
@@ -73,15 +59,23 @@ public class PlayerSearchWindow extends Stage {
         statusLabel = createStatusLabel();
         saveButton = createSaveButton();
 
-        HBox searchBox = new HBox(10, searchField, createSearchButton(), saveButton);
+        HBox searchBox = new HBox(10, createSearchField(), createSearchButton(), saveButton);
         searchBox.setPadding(new Insets(10));
 
-        rttfTable = createTable("RTTF");
-        ttwTable = createTable("TTW");
+        ToggleGroup rttfGroup = new ToggleGroup();
+        ToggleGroup ttwGroup = new ToggleGroup();
+        toggleGroups.put("RTTF", rttfGroup);
+        toggleGroups.put("TTW", ttwGroup);
 
-        HBox tablesBox = new HBox(10, rttfTable, ttwTable);
-        HBox.setHgrow(rttfTable, Priority.ALWAYS);
-        HBox.setHgrow(ttwTable, Priority.ALWAYS);
+        rttfTable = createTable(rttfGroup);
+        ttwTable = createTable(ttwGroup);
+
+        VBox rttfBox = wrapTableWithLabel("RTTF", rttfTable);
+        VBox ttwBox = wrapTableWithLabel("TTW", ttwTable);
+
+        HBox tablesBox = new HBox(15, rttfBox, ttwBox);
+        HBox.setHgrow(rttfBox, Priority.ALWAYS);
+        HBox.setHgrow(ttwBox, Priority.ALWAYS);
 
         ScrollPane scroll = new ScrollPane(tablesBox);
         scroll.setFitToWidth(true);
@@ -89,6 +83,16 @@ public class PlayerSearchWindow extends Stage {
         VBox root = new VBox(10, searchBox, statusLabel, scroll);
         root.setPadding(new Insets(10));
         setScene(new Scene(root));
+    }
+
+    private VBox wrapTableWithLabel(String title, TableView<PlayerMatch> table) {
+        Label label = new Label(title);
+        label.setStyle("-fx-font-weight: bold;");
+        label.setPadding(new Insets(0, 0, 5, 5));
+        VBox box = new VBox(label, table);
+        box.setSpacing(5);
+        VBox.setVgrow(table, Priority.ALWAYS);
+        return box;
     }
 
     private Label createStatusLabel() {
@@ -102,18 +106,16 @@ public class PlayerSearchWindow extends Stage {
         TextField field = new TextField();
         field.setMinWidth(250);
         field.setPromptText("Введите ФИО или часть имени...");
-        field.setOnAction(event -> performSearch());
+        field.setOnAction(event -> performSearch(field.getText().trim()));
         field.setOnKeyPressed(event -> {
-            if (event.getCode() == KeyCode.ESCAPE) {
-                field.clear();
-            }
+            if (event.getCode() == KeyCode.ESCAPE) field.clear();
         });
         return field;
     }
 
     private Button createSearchButton() {
         Button button = new Button("Найти");
-        button.setOnAction(e -> performSearch());
+        button.setOnAction(e -> performSearch(createSearchField().getText().trim()));
         return button;
     }
 
@@ -124,10 +126,8 @@ public class PlayerSearchWindow extends Stage {
         return button;
     }
 
-    private TableView<PlayerMatch> createTable(String source) {
+    private TableView<PlayerMatch> createTable(ToggleGroup group) {
         TableView<PlayerMatch> table = new TableView<>();
-        ToggleGroup group = new ToggleGroup();
-        toggleGroups.put(source, group);
 
         TableColumn<PlayerMatch, Void> selectCol = new TableColumn<>(" ");
         selectCol.setMinWidth(40);
@@ -150,13 +150,14 @@ public class PlayerSearchWindow extends Stage {
         table.getColumns().addAll(selectCol, idCol, nameCol, cityCol, ratingCol);
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
 
-        table.getSelectionModel().selectedItemProperty().addListener((obs, oldSel, newSel) -> Platform.runLater(() -> selectRadioButtonForSelectedRow(table)));
+        table.getSelectionModel().selectedItemProperty().addListener((obs, oldSel, newSel) ->
+                Platform.runLater(() -> selectRadioButtonForSelectedRow(table))
+        );
 
         return table;
     }
 
-    private void performSearch() {
-        String query = searchField.getText().trim();
+    private void performSearch(String query) {
         if (query.isEmpty()) {
             statusLabel.setText("Введите имя для поиска");
             clearTables();
@@ -167,48 +168,26 @@ public class PlayerSearchWindow extends Stage {
         statusLabel.setText("Поиск игроков '" + query + "'...");
         statusLabel.setStyle("-fx-text-fill: orange;");
 
-        executeSearchTask(rttfSearch::searchByName, "RTTF", rttfTable);
-        executeSearchTask(ttwSearch::searchByName, "TTW", ttwTable);
-    }
+        Task<PlayerSearchService.SearchResult> task = searchService.searchByName(query);
+        task.setOnSucceeded(e -> {
+            PlayerSearchService.SearchResult result = task.getValue();
+            rttfTable.setItems(FXCollections.observableArrayList(result.rttfResults));
+            ttwTable.setItems(FXCollections.observableArrayList(result.ttwResults));
+            int rttfCount = result.rttfResults.size();
+            int ttwCount = result.ttwResults.size();
+            statusLabel.setText(String.format("✅ Поиск завершён! Найдено: RTTF=%d, TTW=%d", rttfCount, ttwCount));
+            statusLabel.setStyle("-fx-text-fill: green; -fx-font-weight: bold;");
+            updateSaveButton();
+        });
 
-    private void executeSearchTask(SearchFunction<String, List<PlayerMatch>> searchFunc,
-                                   String source, TableView<PlayerMatch> table) {
-        Task<List<PlayerMatch>> task = new Task<>() {
-            @Override
-            protected List<PlayerMatch> call() throws Exception {
-                return searchFunc.apply(searchField.getText().trim());
-            }
-        };
-
-        task.setOnSucceeded(e -> Platform.runLater(() -> {
-            table.setItems(FXCollections.observableArrayList(task.getValue()));
-            onTaskCompleted();
-        }));
-
-        task.setOnFailed(e -> Platform.runLater(() -> {
+        task.setOnFailed(e -> {
             Throwable ex = task.getException();
             String msg = ex.getMessage() != null ? ex.getMessage() : "Неизвестная ошибка";
-            statusLabel.setText("❌ Ошибка " + source + ": " + msg);
+            statusLabel.setText("❌ Ошибка поиска: " + msg);
             statusLabel.setStyle("-fx-text-fill: red;");
-            onTaskCompleted();
-        }));
+        });
 
-        executor.submit(task);
-    }
-
-    private void onTaskCompleted() {
-        int completed = completedTasks.incrementAndGet();
-        if (completed == 1) {
-            statusLabel.setText("Выполнено 50%...");
-        } else if (completed == 2) {
-            Platform.runLater(() -> {
-                int rttfCount = rttfTable.getItems().size();
-                int ttwCount = ttwTable.getItems().size();
-                statusLabel.setText(String.format("✅ Поиск завершён! Найдено: RTTF=%d, TTW=%d", rttfCount, ttwCount));
-                statusLabel.setStyle("-fx-text-fill: green; -fx-font-weight: bold;");
-                updateSaveButton();
-            });
-        }
+        new Thread(task).start();
     }
 
     private void clearTables() {
@@ -237,47 +216,29 @@ public class PlayerSearchWindow extends Stage {
             return;
         }
 
-        Player newPlayer = mergePlayerData(rttfPlayer, ttwPlayer);
-        statusLabel.setText("Сохранение игрока " + newPlayer.getFio() + "...");
-
-        Task<Void> saveTask = new Task<>() {
-            @Override
-            protected Void call() {
-                playerService.save(newPlayer, LocalDate.MIN, false);
-                return null;
-            }
-        };
+        Task<Void> saveTask = searchService.savePlayer(rttfPlayer, ttwPlayer);
+        statusLabel.setText("Сохранение игрока...");
 
         saveTask.setOnSucceeded(e -> Platform.runLater(() -> {
-            statusLabel.setText("✅ Игрок " + newPlayer.getFio() + " сохранён (ID: " + newPlayer.getId() + ")");
-            showSuccess(newPlayer);
+            Player saved = mergeForDisplay(rttfPlayer, ttwPlayer);
+            statusLabel.setText("✅ Игрок " + saved.getFio() + " сохранён");
+            showSuccess(saved);
             if (onPlayerSaved != null) onPlayerSaved.run();
         }));
 
         saveTask.setOnFailed(e -> Platform.runLater(() -> {
             Throwable ex = saveTask.getException();
-            log.error("Ошибка при сохранении игрока :\n {}",
-                    ex.getMessage(), ex);
-            statusLabel.setText("❌ Ошибка сохранения: " + ex.getMessage());
+            log.error("Ошибка при сохранении игрока", ex);
+            statusLabel.setText("❌ Ошибка: " + ex.getMessage());
             showError(ex.getMessage());
         }));
 
-        executor.submit(saveTask);
+        new Thread(saveTask).start();
     }
 
-    private Player mergePlayerData(PlayerMatch rttf, PlayerMatch ttw) {
+    private Player mergeForDisplay(PlayerMatch rttf, PlayerMatch ttw) {
         Player player = new Player();
-        // Приоритет RTTF, но если его нет — берём из TTW
-        if (rttf != null) {
-            player.setFio(rttf.getFullName());
-            player.setRttfId(rttf.getPlayerId());
-            player.setRttfRating(rttf.getRating());
-        }
-        if (ttw != null) {
-            player.setFio(ttw.getFullName());
-            player.setTtwId(ttw.getPlayerId());
-            player.setTtwRating(ttw.getRating());
-        }
+        player.setFio((rttf != null ? rttf.getFullName() : ttw.getFullName()));
         return player;
     }
 
@@ -300,25 +261,17 @@ public class PlayerSearchWindow extends Stage {
         int selectedIndex = table.getSelectionModel().getSelectedIndex();
         if (selectedIndex == -1) return;
 
-        // Находим радиокнопку в строке
-        Node radioNode = table.lookup(".table-row-cell:selected .radio-button");
-        if (radioNode instanceof RadioButton radioButton) {
-            radioButton.setSelected(true);
-            radioButton.fire(); // активирует ToggleGroup
+        var radioNode = table.lookup(".table-row-cell:selected .radio-button");
+        if (radioNode instanceof RadioButton rb) {
+            rb.setSelected(true);
+            rb.fire();
             updateSaveButton();
         }
     }
 
     private void setupCloseOperation() {
         setOnCloseRequest(e -> {
-            if (!executor.isShutdown()) {
-                executor.shutdown();
-            }
+            searchService.shutdown(); // Завершаем сервис
         });
-    }
-
-    @FunctionalInterface
-    private interface SearchFunction<T, R> {
-        R apply(T t) throws Exception;
     }
 }

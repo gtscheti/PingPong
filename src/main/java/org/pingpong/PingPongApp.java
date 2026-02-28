@@ -52,6 +52,7 @@ public class PingPongApp extends Application {
     private final Label statusLabel = new Label();
     private final MainAppRefresher refresher = this::refreshPlayers;
 
+
     @Override
     public void start(Stage primaryStage) {
         configureStatusLabel();
@@ -248,8 +249,10 @@ public class PingPongApp extends Application {
         stage.initModality(Modality.WINDOW_MODAL);
 
         TournamentTableView tournamentView = new TournamentTableView();
+        tournamentView.setHostServices(getHostServices());
         tournamentView.setMainAppRefresher(refresher);
         tournamentView.setTournamentsForPlayer(player);
+
 
         Scene scene = new Scene(new BorderPane(tournamentView), 900, 600);
         stage.setScene(scene);

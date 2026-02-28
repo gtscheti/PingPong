@@ -1,5 +1,6 @@
 package org.pingpong.view;
 
+import javafx.application.HostServices;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -11,6 +12,8 @@ import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.Clipboard;
+import javafx.scene.input.ClipboardContent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.stage.Modality;
@@ -31,6 +34,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
+import java.util.function.Function;
 
 public class TournamentTableView extends BorderPane {
 
@@ -45,6 +49,10 @@ public class TournamentTableView extends BorderPane {
 
     private final TournamentService tournamentService;
     private static final Logger log = LoggerFactory.getLogger(TournamentTableView.class);
+
+    // --- Добавим HostServices ---
+    @Setter
+    private HostServices hostServices;
 
     // --- Конструктор ---
     public TournamentTableView() {
@@ -68,7 +76,6 @@ public class TournamentTableView extends BorderPane {
         editButton.setGraphic(editIcon);
         editButton.setTooltip(new Tooltip("Редактировать турнир вручную"));
 
-
         editButton.setOnAction(e -> {
             Tournament selected = tableView.getSelectionModel().getSelectedItem();
             if (selected != null) {
@@ -88,16 +95,15 @@ public class TournamentTableView extends BorderPane {
 
     private void setupTableColumns() {
         addColumn("Дата", "date", 70);
-        addColumn("Название RTTF", "rttfName", 180);
+        addLinkColumn("Название RTTF", "rttfName", 180, this::buildRttfUrl);
         addColumn("Дельта RTTF", "rttfDelta", 80);
-        addColumn("Название TTW", "ttwName", 180);
+        addLinkColumn("Название TTW", "ttwName", 180, this::buildTtwUrl);
         addColumn("Дельта TTW", "ttwDelta", 80);
         addColumn("Место", "place", 80);
-        // Настройка цвета для колонки "Дельта RTTF"
-        setDeltaCellFactory((TableColumn<Tournament, BigDecimal>) tableView.getColumns().get(2)); // rttfDelta — 4-й столбец (индекс 3)
-        // Настройка цвета для колонки "Дельта TTW"
-        setDeltaCellFactory((TableColumn<Tournament, BigDecimal>) tableView.getColumns().get(4)); // ttwDelta — 6-й столбец (индекс 5)
 
+        // Настройка цвета дельт
+        setDeltaCellFactory((TableColumn<Tournament, BigDecimal>) tableView.getColumns().get(2)); // rttfDelta
+        setDeltaCellFactory((TableColumn<Tournament, BigDecimal>) tableView.getColumns().get(4)); // ttwDelta
     }
 
     private <T> void addColumn(String title, String property, double width) {
@@ -105,6 +111,56 @@ public class TournamentTableView extends BorderPane {
         col.setCellValueFactory(new PropertyValueFactory<>(property));
         col.setPrefWidth(width);
         tableView.getColumns().add(col);
+    }
+
+    // --- Новая колонка с гиперссылкой ---
+    private void addLinkColumn(String title, String propertyName, double width, Function<Tournament, String> urlBuilder) {
+        TableColumn<Tournament, String> col = new TableColumn<>(title);
+        col.setPrefWidth(width);
+
+        col.setCellFactory(tc -> new TableCell<>() {
+            private final Hyperlink link = new Hyperlink();
+
+            {
+                link.setOnAction(event -> {
+                    Tournament tournament = getTableView().getItems().get(getIndex());
+                    String url = urlBuilder.apply(tournament);
+                    if (url != null && hostServices != null) {
+                        hostServices.showDocument(url);
+                    } else {
+                        ClipboardContent content = new ClipboardContent();
+                        content.putString("Ссылка недоступна");
+                        Clipboard.getSystemClipboard().setContent(content);
+                    }
+                });
+            }
+
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setGraphic(null);
+                    setText(null);
+                } else {
+                    link.setText(item);
+                    setGraphic(link);
+                    setText(null);
+                }
+            }
+        });
+
+        col.setCellValueFactory(new PropertyValueFactory<>(propertyName));
+        tableView.getColumns().add(col);
+    }
+
+    private String buildRttfUrl(Tournament tournament) {
+        if (tournament.getRttfId() == null) return null;
+        return "https://rttf.ru/tournaments/" + tournament.getRttfId();
+    }
+
+    private String buildTtwUrl(Tournament tournament) {
+        if (tournament.getTtwId() == null) return null;
+        return "https://r.ttw.ru/tournaments/?id=" + tournament.getTtwId();
     }
 
     private void setupTableBehavior() {
@@ -116,13 +172,10 @@ public class TournamentTableView extends BorderPane {
         });
     }
 
-    // --- Обработчики событий ---
     private void setupEventHandlers() {
-        // Фильтрация по медалям — привязываем один раз
         medalsOnlyCheckBox.selectedProperty().addListener((obs, oldVal, newVal) -> applyFilter());
     }
 
-    // --- Основной метод загрузки турниров ---
     public void setTournamentsForPlayer(Player player) {
         if (player == null) return;
 
@@ -155,7 +208,7 @@ public class TournamentTableView extends BorderPane {
     private void initializeFilteredAndSortedData(List<Tournament> tournaments) {
         ObservableList<Tournament> observable = FXCollections.observableArrayList(tournaments);
         filteredTournaments = new FilteredList<>(observable, t -> true);
-        applyFilter(); // Применяем текущий фильтр (медали/все)
+        applyFilter();
 
         SortedList<Tournament> sortedTournaments = new SortedList<>(filteredTournaments);
         sortedTournaments.comparatorProperty().bind(tableView.comparatorProperty());
@@ -184,7 +237,6 @@ public class TournamentTableView extends BorderPane {
         statusLabel.setText(String.format("✅ Турниров: %d%s → видно: %d", total, filterText, shown));
     }
 
-    // --- Обновление мест через TTW ---
     private void updateEmptyTtwPlacesForCurrentPlayer() {
         if (currentPlayer == null) {
             statusLabel.setText("❌ Нет выбранного игрока.");
@@ -257,7 +309,6 @@ public class TournamentTableView extends BorderPane {
         }
     }
 
-    // --- Открытие окна игр ---
     private void showGamesWindow(Tournament tournament) {
         Stage gamesStage = new Stage();
         gamesStage.setTitle(String.format("%s: игры — %s", currentPlayer.getFio(), formatTournamentTitle(tournament)));
@@ -290,7 +341,7 @@ public class TournamentTableView extends BorderPane {
                     setText(null);
                     setStyle("");
                 } else {
-                    var delta =  value.compareTo(BigDecimal.ZERO) > 0 ? "+" + value : value.toString();
+                    var delta = value.compareTo(BigDecimal.ZERO) > 0 ? "+" + value : value.toString();
                     setText(String.valueOf(delta));
                     if (value.compareTo(BigDecimal.ZERO) > 0) {
                         setStyle("-fx-text-fill: green;");
@@ -305,12 +356,10 @@ public class TournamentTableView extends BorderPane {
     }
 
     private void editTournament(Tournament tournament) {
-        // Создаём модальное окно
         Dialog<ButtonType> dialog = new Dialog<>();
         dialog.setTitle("Редактировать турнир");
         dialog.setHeaderText("Измените данные турнира:");
 
-        // Поля ввода
         TextField dateField = new TextField(tournament.getDate().toString());
         TextField placeField = new TextField(tournament.getPlace().toString());
 
@@ -325,14 +374,9 @@ public class TournamentTableView extends BorderPane {
 
         Optional<ButtonType> result = dialog.showAndWait();
         if (result.isPresent() && result.get() == ButtonType.OK) {
-            // Обновляем объект
             tournament.setDate(LocalDate.parse(dateField.getText()));
             tournament.setPlace(Integer.valueOf(placeField.getText()));
-
-            // Сохраняем в БД через ваш PlayerService
             tournamentService.update(tournament);
-
-            // Обновляем таблицу
             tableView.refresh();
             statusLabel.setText("Турнир обновлён!");
         }

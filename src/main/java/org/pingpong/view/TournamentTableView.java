@@ -21,6 +21,7 @@ import javafx.stage.Stage;
 import lombok.Setter;
 import org.pingpong.model.Player;
 import org.pingpong.model.Tournament;
+import org.pingpong.repository.TournamentRepository;
 import org.pingpong.service.MainAppRefresher;
 import org.pingpong.service.player.parser.TtwPlayerParser;
 import org.pingpong.service.tournament.TournamentService;
@@ -47,6 +48,7 @@ public class TournamentTableView extends BorderPane {
     @Setter
     private MainAppRefresher mainAppRefresher;
 
+    TournamentRepository tournamentRepository = new TournamentRepository();
     private final TournamentService tournamentService;
     private static final Logger log = LoggerFactory.getLogger(TournamentTableView.class);
 
@@ -56,7 +58,7 @@ public class TournamentTableView extends BorderPane {
 
     // --- Конструктор ---
     public TournamentTableView() {
-        this.tournamentService = new TournamentServiceImpl();
+        this.tournamentService = new TournamentServiceImpl(tournamentRepository);
         initializeUI();
         setupEventHandlers();
     }

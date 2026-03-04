@@ -17,6 +17,7 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import org.pingpong.model.Player;
+import org.pingpong.repository.PlayerRepository;
 import org.pingpong.service.MainAppRefresher;
 import org.pingpong.service.graph.RatingChartApp;
 import org.pingpong.service.player.PlayerSearchService;
@@ -27,6 +28,7 @@ import org.pingpong.service.player.search.TtwPlayerSearch;
 import org.pingpong.view.PlayerSearchWindow;
 import org.pingpong.view.TournamentTableView;
 
+import java.io.IOException;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Objects;
@@ -47,7 +49,8 @@ public class PingPongApp extends Application {
     private static final String BRONZE_MEDAL_PATH = "/images/bronze.png";
     private static final String GRAPH_ICON_PATH = "/images/graph.png";
 
-    private final PlayerService playerService = new PlayerServiceImpl();
+    private final PlayerRepository playerRepository = new PlayerRepository();
+    private final PlayerService playerService = new PlayerServiceImpl(playerRepository);
     private final TableView<Player> tableView = new TableView<>();
     private final Label statusLabel = new Label();
     private final MainAppRefresher refresher = this::refreshPlayers;
@@ -324,7 +327,7 @@ public class PingPongApp extends Application {
 
         Task<Void> task = new Task<>() {
             @Override
-            protected Void call() {
+            protected Void call() throws IOException {
                 playerService.save(player, dateFrom, false);
                 return null;
             }

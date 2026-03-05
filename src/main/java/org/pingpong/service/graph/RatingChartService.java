@@ -2,6 +2,7 @@ package org.pingpong.service.graph;
 
 import org.pingpong.model.Player;
 import org.pingpong.model.Tournament;
+import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -10,6 +11,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+@Service
 public class RatingChartService {
 
     private static final LocalDate START_DATE = LocalDate.of(2000, 1, 1);

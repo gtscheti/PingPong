@@ -2,9 +2,11 @@ package org.pingpong.service.tournament;
 
 import org.pingpong.model.Tournament;
 import org.pingpong.repository.TournamentRepository;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+@Service
 public class TournamentServiceImpl implements TournamentService {
 
     private final TournamentRepository tournamentRepository;

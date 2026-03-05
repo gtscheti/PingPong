@@ -6,9 +6,11 @@ import org.pingpong.model.Player;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
 import org.pingpong.model.Tournament;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
+@Repository
 public class PlayerRepository {
 
     private final org.hibernate.SessionFactory sessionFactory = HibernateUtil.getSessionFactory();
@@ -28,12 +30,6 @@ public class PlayerRepository {
                     .setParameter("ttwId", ttwId.trim())
                     .setMaxResults(1)
                     .uniqueResult();
-        }
-    }
-
-    public Player findById(Long id) {
-        try (Session session = sessionFactory.openSession()) {
-            return session.get(Player.class, id);
         }
     }
 

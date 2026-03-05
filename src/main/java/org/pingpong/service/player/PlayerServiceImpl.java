@@ -7,12 +7,14 @@ import org.pingpong.service.PlayerStatsService;
 import org.pingpong.service.player.parser.TtwPlayerParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
+@Service
 public class PlayerServiceImpl implements PlayerService {
 
     private final PlayerRepository playerRepository;

@@ -5,9 +5,11 @@ import org.pingpong.model.Tournament;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
+@Repository
 public class TournamentRepository {
 
     private final SessionFactory sessionFactory = HibernateUtil.getSessionFactory();

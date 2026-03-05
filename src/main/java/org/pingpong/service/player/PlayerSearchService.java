@@ -4,12 +4,14 @@ import javafx.concurrent.Task;
 import org.pingpong.model.Player;
 import org.pingpong.model.PlayerMatch;
 import org.pingpong.service.player.search.PlayerSearch;
+import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+@Service
 public class PlayerSearchService {
 
     private final PlayerSearch rttfSearch;

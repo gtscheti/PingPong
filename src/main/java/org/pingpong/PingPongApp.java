@@ -27,6 +27,7 @@ import org.pingpong.service.player.search.RttfPlayerSearch;
 import org.pingpong.service.player.search.TtwPlayerSearch;
 import org.pingpong.view.PlayerSearchWindow;
 import org.pingpong.view.TournamentTableView;
+import org.springframework.context.ApplicationContext;
 
 import java.io.IOException;
 import java.time.LocalDate;
@@ -49,6 +50,7 @@ public class PingPongApp extends Application {
     private static final String BRONZE_MEDAL_PATH = "/images/bronze.png";
     private static final String GRAPH_ICON_PATH = "/images/graph.png";
 
+    private static ApplicationContext context;
     private final PlayerRepository playerRepository = new PlayerRepository();
     private final PlayerService playerService = new PlayerServiceImpl(playerRepository);
     private final TableView<Player> tableView = new TableView<>();

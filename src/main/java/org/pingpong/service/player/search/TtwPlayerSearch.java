@@ -38,6 +38,6 @@ public class TtwPlayerSearch extends AbstractPlayerSearch {
 
     @Override
     protected Element getLinkElement(Element row) {
-        return row.select("td.player-name-cell").selectFirst("a");
+        return row.select("td.player-name-cell a").first();
     }
 }

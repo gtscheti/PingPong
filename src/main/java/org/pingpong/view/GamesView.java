@@ -11,6 +11,7 @@ import org.pingpong.Utils;
 import org.pingpong.model.Game;
 import org.pingpong.model.Player;
 import org.pingpong.model.Tournament;
+import org.pingpong.repository.GameRepository;
 import org.pingpong.service.game.GameService;
 import org.pingpong.service.game.GameServiceImpl;
 import org.slf4j.Logger;
@@ -23,7 +24,8 @@ public class GamesView extends BorderPane {
 
     private final TableView<Game> tableView = new TableView<>();
     private final Label statusLabel = new Label("Загрузка игр...");
-    private final GameService gameService = new GameServiceImpl();
+    GameRepository gameRepository = new GameRepository();
+    private final GameService gameService = new GameServiceImpl(gameRepository);
     private final Player currentPlayer;
     private Tournament currentTournament;
     private static final Logger log = LoggerFactory.getLogger(GamesView.class);

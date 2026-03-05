@@ -4,6 +4,7 @@ import javafx.concurrent.Task;
 import org.pingpong.model.Player;
 import org.pingpong.model.PlayerMatch;
 import org.pingpong.service.player.search.PlayerSearch;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -19,7 +20,10 @@ public class PlayerSearchService {
     private final PlayerService playerService;
     private final ExecutorService executor = Executors.newFixedThreadPool(2);
 
-    public PlayerSearchService(PlayerSearch rttfSearch, PlayerSearch ttwSearch, PlayerService playerService) {
+    public PlayerSearchService(
+            @Qualifier("rttfPlayerSearch") PlayerSearch rttfSearch,
+            @Qualifier("ttwPlayerSearch") PlayerSearch ttwSearch,
+            PlayerService playerService) {
         this.rttfSearch = rttfSearch;
         this.ttwSearch = ttwSearch;
         this.playerService = playerService;

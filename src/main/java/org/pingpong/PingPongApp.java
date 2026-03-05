@@ -16,18 +16,18 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
+import org.pingpong.config.SpringConfig;
 import org.pingpong.model.Player;
-import org.pingpong.repository.PlayerRepository;
 import org.pingpong.service.MainAppRefresher;
 import org.pingpong.service.graph.RatingChartApp;
 import org.pingpong.service.player.PlayerSearchService;
 import org.pingpong.service.player.PlayerService;
-import org.pingpong.service.player.PlayerServiceImpl;
 import org.pingpong.service.player.search.RttfPlayerSearch;
 import org.pingpong.service.player.search.TtwPlayerSearch;
 import org.pingpong.view.PlayerSearchWindow;
 import org.pingpong.view.TournamentTableView;
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
 import java.io.IOException;
 import java.time.LocalDate;
@@ -51,12 +51,24 @@ public class PingPongApp extends Application {
     private static final String GRAPH_ICON_PATH = "/images/graph.png";
 
     private static ApplicationContext context;
-    private final PlayerRepository playerRepository = new PlayerRepository();
-    private final PlayerService playerService = new PlayerServiceImpl(playerRepository);
+    private PlayerService playerService;
     private final TableView<Player> tableView = new TableView<>();
     private final Label statusLabel = new Label();
     private final MainAppRefresher refresher = this::refreshPlayers;
 
+
+    @Override
+    public void init() {
+        context = new AnnotationConfigApplicationContext(SpringConfig.class);
+        playerService = context.getBean(PlayerService.class);
+    }
+
+    @Override
+    public void stop() {
+        if (context instanceof AnnotationConfigApplicationContext ctx) {
+            ctx.close();
+        }
+    }
 
     @Override
     public void start(Stage primaryStage) {

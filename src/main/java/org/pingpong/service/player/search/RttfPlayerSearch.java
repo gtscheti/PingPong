@@ -3,7 +3,9 @@ package org.pingpong.service.player.search;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import org.springframework.stereotype.Component;
 
+@Component("rttfPlayerSearch")
 public class RttfPlayerSearch extends AbstractPlayerSearch {
 
     @Override

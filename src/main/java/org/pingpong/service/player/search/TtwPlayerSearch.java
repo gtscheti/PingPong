@@ -14,11 +14,6 @@ public class TtwPlayerSearch extends AbstractPlayerSearch {
     }
 
     @Override
-    protected String getNameQueryParameter() {
-        return "player-name";
-    }
-
-    @Override
     protected Elements getRows(Document doc) {
         return doc.select("div.player-list table tbody tr");
     }

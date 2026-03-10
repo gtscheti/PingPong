@@ -6,6 +6,8 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -18,9 +20,11 @@ public abstract class AbstractPlayerSearch implements PlayerSearch {
 
     private static final Pattern ID_PATTERN = Pattern.compile("id=([a-f0-9]+)");
 
+    // Логгер для каждого подкласса
+    protected final Logger log = LoggerFactory.getLogger(getClass());
+
     // Абстрактные методы для специфичной логики
     protected abstract String getBaseUrl();
-    protected abstract String getNameQueryParameter();
     protected abstract Elements getRows(Document doc);
     protected abstract String getName(Element row);
     protected abstract String getCity(Element row);
@@ -38,7 +42,8 @@ public abstract class AbstractPlayerSearch implements PlayerSearch {
         String url = getBaseUrl() + encodedName;
 
         Connection connection = Jsoup.connect(url).timeout(10000);
-        Document doc = executeWithRetry(connection, 3);
+
+        Document doc = executeWithRetry(connection, 3, getClass().getSimpleName());
 
         Elements rows = getRows(doc);
         List<PlayerMatch> matches = new ArrayList<>();
@@ -54,23 +59,26 @@ public abstract class AbstractPlayerSearch implements PlayerSearch {
                     matches.add(new PlayerMatch(name, city, rating, playerId));
                 }
             } catch (Exception e) {
-                System.err.println("Ошибка при парсинге строки: " + e.getMessage());
+                log.error("Ошибка при парсинге строки в {}: {}", getClass().getSimpleName(), e.getMessage(), e);
             }
         }
 
         return matches;
     }
 
-    private Document executeWithRetry(Connection connection, int maxRetries) throws Exception {
+    private Document executeWithRetry(Connection connection, int maxRetries, String source) throws Exception {
         Exception lastException = null;
         for (int i = 0; i < maxRetries; i++) {
             try {
                 return connection.get();
             } catch (Exception e) {
                 lastException = e;
+                log.warn("Попытка {} не удалась в {} по URL: {}. Ошибка: {}",
+                        i + 1, source, connection.request().url(), e.toString());
                 Thread.sleep(1000L * (i + 1));
             }
         }
+        log.error("Не удалось выполнить запрос после {} попыток в классе {}", maxRetries, source, lastException);
         throw lastException;
     }
 
@@ -81,6 +89,7 @@ public abstract class AbstractPlayerSearch implements PlayerSearch {
         try {
             return Integer.parseInt(ratingStr.replaceAll("\\D", ""));
         } catch (NumberFormatException e) {
+            log.debug("Не удалось распарсить рейтинг: '{}'", ratingStr, e);
             return null;
         }
     }
@@ -92,7 +101,9 @@ public abstract class AbstractPlayerSearch implements PlayerSearch {
         String href = link.attr("href");
         if (href.contains("id=")) {
             Matcher m = ID_PATTERN.matcher(href);
-            return m.find() ? m.group(1) : null;
+            if (m.find()) {
+                return m.group(1);
+            }
         }
         // Для URL вида /players/12345
         String[] parts = href.split("/");

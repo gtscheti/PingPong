@@ -14,11 +14,6 @@ public class RttfPlayerSearch extends AbstractPlayerSearch {
     }
 
     @Override
-    protected String getNameQueryParameter() {
-        return "name";
-    }
-
-    @Override
     protected Elements getRows(Document doc) {
         return doc.select("section.players-list table tbody tr");
     }

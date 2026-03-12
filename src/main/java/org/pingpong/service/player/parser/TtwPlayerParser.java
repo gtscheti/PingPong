@@ -37,8 +37,8 @@ public class TtwPlayerParser extends AbstractPlayerParser {
 
     @Override
     protected Integer parseRating(Element profileSection) {
-        Element rating = profileSection.selectFirst("div.header-rating");
-        return rating != null ? Integer.valueOf(rating.text()) : null;
+        Element rating = profileSection.selectFirst("th.rating-rating-cell");
+        return rating != null ? (int) Math.round(Double.parseDouble(rating.text())) : null;
     }
 
     @Override

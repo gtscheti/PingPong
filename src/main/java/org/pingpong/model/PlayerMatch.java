@@ -1,8 +1,10 @@
 package org.pingpong.model;
 
+import lombok.Builder;
 import lombok.Getter;
 
 @Getter
+@Builder
 public class PlayerMatch {
     String fullName;
     String city;

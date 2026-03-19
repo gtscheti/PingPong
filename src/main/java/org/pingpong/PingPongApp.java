@@ -24,6 +24,7 @@ import org.pingpong.service.player.PlayerSearchService;
 import org.pingpong.service.player.PlayerService;
 import org.pingpong.service.player.search.RttfPlayerSearch;
 import org.pingpong.service.player.search.TtwPlayerSearch;
+import org.pingpong.view.BatchSearchDialog;
 import org.pingpong.view.PlayerSearchWindow;
 import org.pingpong.view.TournamentTableView;
 import org.springframework.context.ApplicationContext;
@@ -49,6 +50,7 @@ public class PingPongApp extends Application {
     private static final String SILVER_MEDAL_PATH = "/images/silver.png";
     private static final String BRONZE_MEDAL_PATH = "/images/bronze.png";
     private static final String GRAPH_ICON_PATH = "/images/graph.png";
+    private static final String SEARCH_ICON_PATH = "/images/search.png";
 
     private static ApplicationContext context;
     private PlayerService playerService;
@@ -126,8 +128,9 @@ public class PingPongApp extends Application {
         Button graphBtn = createIconButton(GRAPH_ICON_PATH, "График рейтингов", e -> showRatingChart());
         Button refreshBtn = createIconButton(REFRESH_ICON_PATH, "Обновить данные выбранного игрока", e -> openUpdateDateDialog((Stage) tableView.getScene().getWindow()));
         Button refreshAllBtn = createIconButton(REFRESH_ALL_ICON_PATH, "Обновить данные всех игроков", e -> refreshAllPlayers());
+        Button batchSearchBtn = createIconButton(SEARCH_ICON_PATH, "Поиск по списку", e -> openBatchSearch());
 
-        HBox toolbar = new HBox(3, addBtn, delBtn, graphBtn, refreshBtn, refreshAllBtn);
+        HBox toolbar = new HBox(3, addBtn, delBtn, graphBtn, refreshBtn, refreshAllBtn, batchSearchBtn);
         toolbar.setAlignment(Pos.CENTER_LEFT);
         toolbar.setPadding(new Insets(3, 0, 3, 0));
         return toolbar;
@@ -484,6 +487,11 @@ public class PingPongApp extends Application {
         RatingChartApp.showRatingChart(selected.getTournamentList(), selected);
 
         statusLabel.setText("График показан для " + selected.getFio());
+    }
+
+    private void openBatchSearch() {
+        BatchSearchDialog dialog = new BatchSearchDialog();
+        dialog.show();
     }
 
     public static void main(String[] args) {

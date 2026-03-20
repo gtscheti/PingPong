@@ -5,12 +5,14 @@ import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.image.Image;
 import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
+import org.pingpong.Utils;
 import org.pingpong.model.PlayerMatch;
 import org.pingpong.service.player.search.PlayerSearch;
 import org.pingpong.service.player.search.RttfPlayerSearch;
@@ -32,6 +34,7 @@ public class BatchSearchDialog extends Stage {
 
     public BatchSearchDialog() {
         setTitle("Пакетный поиск игроков");
+        getIcons().add(new Image(Objects.requireNonNull(getClass().getResourceAsStream("/images/search.png"))));
         initModality(Modality.APPLICATION_MODAL);
         setMinWidth(700);
         setMinHeight(600);
@@ -196,7 +199,7 @@ public class BatchSearchDialog extends Stage {
             String[] parts = item.split("—");
             if (parts.length < 3) continue;
 
-            String fullName = parts[0].trim();
+            String fullName = Utils.shortenFio(parts[0].trim());
             String ratingStr = parts[2].trim();
 
             if (ratingStr.equals("—")) {

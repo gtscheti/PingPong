@@ -41,7 +41,7 @@ public abstract class AbstractPlayerSearch implements PlayerSearch {
         String encodedName = URLEncoder.encode(cleanName, StandardCharsets.UTF_8);
         String url = getBaseUrl() + encodedName;
 
-        Connection connection = Jsoup.connect(url).timeout(10000);
+        Connection connection = Jsoup.connect(url).timeout(30000);
 
         Document doc = executeWithRetry(connection, 3, getClass().getSimpleName());
 

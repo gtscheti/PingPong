@@ -6,11 +6,11 @@ import org.jsoup.Jsoup;
 
 public enum SiteConfig {
     TTW("https://r.ttw.ru/players/?id=%s",
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64)", 30000),
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64)", 50000),
     RTTF("https://rttf.ru/results/%s",
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64)", 10000),
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64)", 30000),
     TTWTOUR("https://r.ttw.ru/tournaments/?id=%s",
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64)", 30000);
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64)", 50000);
 
     private final String urlTemplate;
     private final String userAgent;

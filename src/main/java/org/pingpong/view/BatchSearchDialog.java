@@ -143,7 +143,7 @@ public class BatchSearchDialog extends Stage {
 
                     String line = String.format("%s — %s — %s",
                             selected.getFullName(),
-                            selected.getCity().isEmpty() ? "—" : selected.getCity(),
+                            selected.getCity().isEmpty() ? "()" : selected.getCity(),
                             selected.getRating() == null ? "—" : selected.getRating());
                     results.add(line);
                 } catch (Exception e) {

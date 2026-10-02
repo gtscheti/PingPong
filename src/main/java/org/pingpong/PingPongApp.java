@@ -509,7 +509,7 @@ public class PingPongApp extends Application {
 
         Stage dialog = new Stage();
         dialog.initModality(Modality.WINDOW_MODAL);
-        dialog.initOwner((Stage) tableView.getScene().getWindow());
+        dialog.initOwner( tableView.getScene().getWindow());
         dialog.setTitle("Матчи с соперниками - " + selected.getFio());
         dialog.setResizable(true);
 

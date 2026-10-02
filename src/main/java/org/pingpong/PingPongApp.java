@@ -18,8 +18,10 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 import org.pingpong.config.SpringConfig;
 import org.pingpong.model.Player;
+import org.pingpong.model.OpponentMatchStats;
 import org.pingpong.service.MainAppRefresher;
 import org.pingpong.service.graph.RatingChartApp;
+import org.pingpong.service.player.OpponentService;
 import org.pingpong.service.player.PlayerSearchService;
 import org.pingpong.service.player.PlayerService;
 import org.pingpong.service.player.search.RttfPlayerSearch;
@@ -51,9 +53,11 @@ public class PingPongApp extends Application {
     private static final String BRONZE_MEDAL_PATH = "/images/bronze.png";
     private static final String GRAPH_ICON_PATH = "/images/graph.png";
     private static final String SEARCH_ICON_PATH = "/images/search.png";
+    private static final String MATCHES_ICON_PATH = "/images/opponent.png";
 
     private static ApplicationContext context;
     private PlayerService playerService;
+    private OpponentService opponentService;
     private final TableView<Player> tableView = new TableView<>();
     private final Label statusLabel = new Label();
     private final MainAppRefresher refresher = this::refreshPlayers;
@@ -63,6 +67,7 @@ public class PingPongApp extends Application {
     public void init() {
         context = new AnnotationConfigApplicationContext(SpringConfig.class);
         playerService = context.getBean(PlayerService.class);
+        opponentService = context.getBean(OpponentService.class);
     }
 
     @Override
@@ -129,8 +134,9 @@ public class PingPongApp extends Application {
         Button refreshBtn = createIconButton(REFRESH_ICON_PATH, "Обновить данные выбранного игрока", e -> openUpdateDateDialog((Stage) tableView.getScene().getWindow()));
         Button refreshAllBtn = createIconButton(REFRESH_ALL_ICON_PATH, "Обновить данные всех игроков", e -> refreshAllPlayers());
         Button batchSearchBtn = createIconButton(SEARCH_ICON_PATH, "Поиск по списку", e -> openBatchSearch());
+        Button matchesBtn = createIconButton(MATCHES_ICON_PATH, "Соперники", e -> showMatchesAgainstOpponents());
 
-        HBox toolbar = new HBox(3, addBtn, delBtn, graphBtn, refreshBtn, refreshAllBtn, batchSearchBtn);
+        HBox toolbar = new HBox(3, addBtn, delBtn, graphBtn, matchesBtn, refreshBtn, refreshAllBtn, batchSearchBtn);
         toolbar.setAlignment(Pos.CENTER_LEFT);
         toolbar.setPadding(new Insets(3, 0, 3, 0));
         return toolbar;
@@ -491,6 +497,158 @@ public class PingPongApp extends Application {
 
     private void openBatchSearch() {
         BatchSearchDialog dialog = new BatchSearchDialog();
+        dialog.show();
+    }
+
+    private void showMatchesAgainstOpponents() {
+        Player selected = tableView.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            showError((Stage) tableView.getScene().getWindow(), "Выберите игрока для отображения матчей");
+            return;
+        }
+
+        Stage dialog = new Stage();
+        dialog.initModality(Modality.WINDOW_MODAL);
+        dialog.initOwner((Stage) tableView.getScene().getWindow());
+        dialog.setTitle("Матчи с соперниками - " + selected.getFio());
+        dialog.setResizable(true);
+
+        VBox layout = new VBox(15);
+        layout.setPadding(new Insets(20));
+
+        // Заголовок
+        Label titleLabel = new Label("Статистика матчей: " + selected.getFio());
+        titleLabel.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
+
+        // Общая информация
+        Label infoLabel = new Label("Уникальных соперников: " + opponentService.getUniqueOpponentsCount(selected) +
+                "\nВсего матчей: " + selected.getTotalGames());
+        infoLabel.setStyle("-fx-font-size: 13px;");
+
+        // Таблица соперников
+        TableView<OpponentMatchStats> opponentsTable = new TableView<>();
+        opponentsTable.setEditable(false);
+        opponentsTable.setPrefHeight(400);
+
+        TableColumn<OpponentMatchStats, String> nameCol = new TableColumn<>("Соперник");
+        nameCol.setCellValueFactory(new PropertyValueFactory<>("opponentName"));
+        nameCol.setPrefWidth(200);
+
+        TableColumn<OpponentMatchStats, String> gamesCol = new TableColumn<>("Игр");
+        gamesCol.setCellValueFactory(new PropertyValueFactory<>("totalGames"));
+        gamesCol.setPrefWidth(50);
+
+        TableColumn<OpponentMatchStats, String> winsCol = new TableColumn<>("Побед");
+        winsCol.setCellValueFactory(new PropertyValueFactory<>("wins"));
+        winsCol.setPrefWidth(60);
+
+        TableColumn<OpponentMatchStats, String> lossesCol = new TableColumn<>("Поражений");
+        lossesCol.setCellValueFactory(new PropertyValueFactory<>("losses"));
+        lossesCol.setPrefWidth(80);
+
+        TableColumn<OpponentMatchStats, String> wonPointsCol = new TableColumn<>("Выигр. очков");
+        wonPointsCol.setCellValueFactory(new PropertyValueFactory<>("wonPoints"));
+        wonPointsCol.setPrefWidth(90);
+
+        TableColumn<OpponentMatchStats, String> lostPointsCol = new TableColumn<>("Проигр. очков");
+        lostPointsCol.setCellValueFactory(new PropertyValueFactory<>("lostPoints"));
+        lostPointsCol.setPrefWidth(90);
+
+        TableColumn<OpponentMatchStats, String> pointsDiffCol = new TableColumn<>("Баланс очков");
+        pointsDiffCol.setCellValueFactory(cellData -> {
+            int diff = cellData.getValue().getPointsDifference();
+            return new javafx.beans.property.SimpleStringProperty(diff > 0 ? "+" + diff : String.valueOf(diff));
+        });
+        pointsDiffCol.setPrefWidth(90);
+
+        TableColumn<OpponentMatchStats, String> winRateCol = new TableColumn<>("% побед");
+        winRateCol.setCellValueFactory(new PropertyValueFactory<>("winRateFormatted"));
+        winRateCol.setPrefWidth(70);
+
+        TableColumn<OpponentMatchStats, String> ttwDeltaCol = new TableColumn<>("Дельта TTW");
+        ttwDeltaCol.setCellValueFactory(cellData ->
+                new javafx.beans.property.SimpleStringProperty(cellData.getValue().getTtwDeltaFormatted()));
+        ttwDeltaCol.setCellFactory(column -> new TableCell<>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                    setStyle("");
+                } else {
+                    setText(item);
+                    try {
+                        double delta = Double.parseDouble(item);
+                        if (delta > 0) {
+                            setStyle("-fx-text-fill: green; -fx-font-weight: bold;");
+                        } else if (delta < 0) {
+                            setStyle("-fx-text-fill: red; -fx-font-weight: bold;");
+                        } else {
+                            setStyle("");
+                        }
+                    } catch (NumberFormatException e) {
+                        setStyle("");
+                    }
+                }
+            }
+        });
+        ttwDeltaCol.setPrefWidth(90);
+
+        TableColumn<OpponentMatchStats, String> rttfDeltaCol = new TableColumn<>("Дельта RTTF");
+        rttfDeltaCol.setCellValueFactory(cellData ->
+                new javafx.beans.property.SimpleStringProperty(cellData.getValue().getRttfDeltaFormatted()));
+        rttfDeltaCol.setCellFactory(column -> new TableCell<>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                    setStyle("");
+                } else {
+                    setText(item);
+                    try {
+                        double delta = Double.parseDouble(item);
+                        if (delta > 0) {
+                            setStyle("-fx-text-fill: green; -fx-font-weight: bold;");
+                        } else if (delta < 0) {
+                            setStyle("-fx-text-fill: red; -fx-font-weight: bold;");
+                        } else {
+                            setStyle("");
+                        }
+                    } catch (NumberFormatException e) {
+                        setStyle("");
+                    }
+                }
+            }
+        });
+        rttfDeltaCol.setPrefWidth(90);
+
+        opponentsTable.getColumns().addAll(
+                nameCol,
+                gamesCol,
+                winsCol,
+                lossesCol,
+                wonPointsCol,
+                lostPointsCol,
+                pointsDiffCol,
+                winRateCol,
+                ttwDeltaCol,
+                rttfDeltaCol
+        );
+
+        List<OpponentMatchStats> opponents = opponentService.getAllOpponentsMatchStats(selected);
+        opponentsTable.setItems(FXCollections.observableArrayList(opponents));
+
+        VBox tableContainer = new VBox(5, infoLabel, opponentsTable);
+
+        layout.getChildren().addAll(titleLabel, tableContainer);
+
+        ScrollPane scrollPane = new ScrollPane(layout);
+        scrollPane.setFitToWidth(true);
+
+        dialog.setScene(new Scene(scrollPane));
+        dialog.setWidth(1100);
+        dialog.setHeight(600);
         dialog.show();
     }
 

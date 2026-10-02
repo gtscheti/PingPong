@@ -18,4 +18,18 @@ public class OpponentStats {
     private int wins;
     private int losses;
     private double winRate;
+
+    /**
+     * Процент побед в строковом формате.
+     */
+    public String getWinRateFormatted() {
+        return String.format("%.1f%%", winRate);
+    }
+
+    /**
+     * Проверка корректности статистики.
+     */
+    public boolean isStatsValid() {
+        return totalGames == wins + losses;
+    }
 }

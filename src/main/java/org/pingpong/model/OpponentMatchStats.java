@@ -32,13 +32,6 @@ public class OpponentMatchStats {
     }
 
     /**
-     * Форматированный процент побед.
-     */
-    public String getWinRateFormatted() {
-        return String.format("%.1f%%", getWinRate());
-    }
-
-    /**
      * Форматированная дельта RTTF.
      */
     public String getRttfDeltaFormatted() {

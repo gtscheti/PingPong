@@ -1,6 +1,5 @@
 package org.pingpong.service.player;
 
-import org.pingpong.Utils;
 import org.pingpong.model.OpponentMatchStats;
 import org.pingpong.model.OpponentStats;
 import org.pingpong.model.Player;
@@ -114,24 +113,6 @@ public class OpponentService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Получает детальную статистику конкретного соперника.
-     *
-     * @param player       игрок
-     * @param opponentName имя соперника
-     * @return статистика игр с этим соперником или null, если соперник не найден
-     */
-    public OpponentMatchStats getOpponentMatchStats(Player player, String opponentName) {
-        if (player == null || opponentName == null || opponentName.trim().isEmpty()) {
-            return null;
-        }
-
-        List<OpponentMatchStats> allOpponents = getAllOpponentsMatchStats(player);
-        return allOpponents.stream()
-                .filter(opponent -> opponent.getOpponentName().equalsIgnoreCase(opponentName.trim()))
-                .findFirst()
-                .orElse(null);
-    }
 
     /**
      * Получает топ-N наиболее частых соперников (упрощенная статистика).

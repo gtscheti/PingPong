@@ -519,6 +519,7 @@ public class PingPongApp extends Application {
         // Заголовок
         Label titleLabel = new Label("Статистика матчей: " + selected.getFio());
         titleLabel.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
+        dialog.getIcons().add(new Image(Objects.requireNonNull(getClass().getResourceAsStream("/images/opponent.png"))));
 
         // Общая информация
         Label infoLabel = new Label("Уникальных соперников: " + opponentService.getUniqueOpponentsCount(selected) +
